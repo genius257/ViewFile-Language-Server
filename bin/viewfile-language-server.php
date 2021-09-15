@@ -31,7 +31,7 @@ set_exception_handler(function (\Throwable $e) use ($logger) {
     $logger->critical((string)$e);
 });
 
-@cli_set_process_title('PHP Language Server');
+@cli_set_process_title('PHP ViewFile Language Server');
 
 // If XDebug is enabled, restart without it
 $xdebugHandler = new XdebugHandler('PHPLS');
