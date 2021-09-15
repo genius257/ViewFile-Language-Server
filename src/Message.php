@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer;
 
 use AdvancedJsonRpc\Message as MessageBody;
-use Genius257\ViewFileLanguageServer\Message;
+//use Genius257\ViewFileLanguageServer\Message;
 
 class Message
 {

@@ -3,7 +3,7 @@ declare(strict_types = 1);
 
 namespace Genius257\ViewFileLanguageServer;
 
-use Genius257\ViewFileLanguageServerProtocol\{
+use LanguageServerProtocol\{
     ServerCapabilities,
     ClientCapabilities,
     TextDocumentSyncKind,
