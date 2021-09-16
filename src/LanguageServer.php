@@ -151,7 +151,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                     }
                     $this->protocolWriter->write(new Message($responseBody));
                 }
-            })->otherwise('\\LanguageServer\\crash');
+            })->otherwise('\\Genius257\\ViewFileLanguageServer\\crash');
         });
         $this->protocolWriter = $writer;
         $this->client = new LanguageClient($reader, $writer);
@@ -236,7 +236,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                     $this->composerLock,
                     $this->composerJson
                 );
-                $indexer->index()->otherwise('\\LanguageServer\\crash');
+                $indexer->index()->otherwise('\\Genius257\\ViewFileLanguageServer\\crash');
             }
 
 
