@@ -268,13 +268,13 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
             // Ask the client to return always full documents (because we need to rebuild the AST from scratch)
             $serverCapabilities->textDocumentSync = TextDocumentSyncKind::FULL;
             // Support "Find all symbols"
-            $serverCapabilities->documentSymbolProvider = true;
+            //$serverCapabilities->documentSymbolProvider = true;
             // Support "Find all symbols in workspace"
-            $serverCapabilities->workspaceSymbolProvider = true;
+            //$serverCapabilities->workspaceSymbolProvider = true;
             // Support "Go to definition"
-            $serverCapabilities->definitionProvider = true;
+            //$serverCapabilities->definitionProvider = true;
             // Support "Find all references"
-            $serverCapabilities->referencesProvider = true;
+            //$serverCapabilities->referencesProvider = true;
             // Support "Hover"
             $serverCapabilities->hoverProvider = true;
             // Support "Completion"
@@ -282,8 +282,8 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
             $serverCapabilities->completionProvider->resolveProvider = false;
             $serverCapabilities->completionProvider->triggerCharacters = ['$', '>'];
 
-            $serverCapabilities->signatureHelpProvider = new SignatureHelpOptions();
-            $serverCapabilities->signatureHelpProvider->triggerCharacters = ['(', ','];
+            //$serverCapabilities->signatureHelpProvider = new SignatureHelpOptions();
+            //$serverCapabilities->signatureHelpProvider->triggerCharacters = ['(', ','];
 
             // Support global references
             $serverCapabilities->xworkspaceReferencesProvider = true;
