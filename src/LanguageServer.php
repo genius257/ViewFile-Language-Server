@@ -193,6 +193,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
             // The DefinitionResolver should look in stubs, the project source and dependencies
             //$this->definitionResolver = new DefinitionResolver($this->globalIndex);
 
+            /*
             $this->documentLoader = new PhpDocumentLoader(
                 $this->contentRetriever,
                 $this->projectIndex,
@@ -204,8 +205,9 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
 
                 // Find composer.json
                 if ($this->composerJson === null) {
-                    $composerJsonFiles = yield $this->filesFinder->find(Path::makeAbsolute('**/composer.json', $rootPath));
-                    sortUrisLevelOrder($composerJsonFiles);
+                    */
+                    //$composerJsonFiles = yield $this->filesFinder->find(Path::makeAbsolute('**/composer.json', $rootPath));
+                    /*sortUrisLevelOrder($composerJsonFiles);
 
                     if (!empty($composerJsonFiles)) {
                         $this->composerJson = json_decode(yield $this->contentRetriever->retrieve($composerJsonFiles[0]));
@@ -213,9 +215,9 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                 }
 
                 // Find composer.lock
-                if ($this->composerLock === null) {
-                    $composerLockFiles = yield $this->filesFinder->find(Path::makeAbsolute('**/composer.lock', $rootPath));
-                    sortUrisLevelOrder($composerLockFiles);
+                if ($this->composerLock === null) {*/
+                    //$composerLockFiles = yield $this->filesFinder->find(Path::makeAbsolute('**/composer.lock', $rootPath));
+                    /*sortUrisLevelOrder($composerLockFiles);
 
                     if (!empty($composerLockFiles)) {
                         $this->composerLock = json_decode(yield $this->contentRetriever->retrieve($composerLockFiles[0]));
@@ -261,7 +263,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                     $this->composerJson
                 );
             }
-
+            */
             $serverCapabilities = new ServerCapabilities();
             // Ask the client to return always full documents (because we need to rebuild the AST from scratch)
             $serverCapabilities->textDocumentSync = TextDocumentSyncKind::FULL;
