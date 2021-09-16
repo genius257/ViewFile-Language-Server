@@ -191,7 +191,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
             //$this->globalIndex = new GlobalIndex($stubsIndex, $this->projectIndex);
 
             // The DefinitionResolver should look in stubs, the project source and dependencies
-            $this->definitionResolver = new DefinitionResolver($this->globalIndex);
+            //$this->definitionResolver = new DefinitionResolver($this->globalIndex);
 
             $this->documentLoader = new PhpDocumentLoader(
                 $this->contentRetriever,
