@@ -199,10 +199,10 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                 $this->projectIndex,
                 $this->definitionResolver
             );
-
+            */
             if ($rootPath !== null) {
                 yield $this->beforeIndex($rootPath);
-
+                /*
                 // Find composer.json
                 if ($this->composerJson === null) {
                     */
@@ -239,8 +239,9 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                     $this->composerJson
                 );
                 $indexer->index()->otherwise('\\Genius257\\ViewFileLanguageServer\\crash');
+                */
             }
-
+            /*
 
             if ($this->textDocument === null) {
                 $this->textDocument = new Server\TextDocument(
