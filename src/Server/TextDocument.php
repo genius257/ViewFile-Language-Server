@@ -1,25 +1,37 @@
 <?php
 declare(strict_types = 1);
+
 namespace Genius257\ViewFileLanguageServer\Server;
 
-use Amp\Promise;
-use Amp\Success;
-use Genius257\ViewFileLanguageServerProtocol\CompletionList;
-use Genius257\ViewFileLanguageServerProtocol\Hover;
-use Genius257\ViewFileLanguageServerProtocol\Location;
-use Genius257\ViewFileLanguageServerProtocol\MarkupContent;
-use Genius257\ViewFileLanguageServerProtocol\MarkupKind;
-use Genius257\ViewFileLanguageServerProtocol\Position;
-use Genius257\ViewFileLanguageServerProtocol\Range;
-use Genius257\ViewFileLanguageServerProtocol\TextDocumentIdentifier;
-use Genius257\ViewFileLanguageServerProtocol\TextDocumentItem;
-use Genius257\ViewFileLanguageServerProtocol\VersionedTextDocumentIdentifier;
-use Psalm\Codebase;
-use Genius257\ViewFileLanguageServer\LanguageServer;
-
-use function count;
-use function error_log;
-use function substr_count;
+use Genius257\ViewFileLanguageServer\{
+    CompletionProvider, SignatureHelpProvider, LanguageClient, PhpDocument, PhpDocumentLoader, DefinitionResolver
+};
+use Genius257\ViewFileLanguageServer\Index\ReadableIndex;
+use Genius257\ViewFileLanguageServer\Factory\LocationFactory;
+use Genius257\ViewFileLanguageServer\Factory\RangeFactory;
+use LanguageServerProtocol\{
+    FormattingOptions,
+    Hover,
+    Location,
+    MarkedString,
+    Position,
+    Range,
+    ReferenceContext,
+    SymbolDescriptor,
+    PackageDescriptor,
+    SymbolLocationInformation,
+    TextDocumentIdentifier,
+    TextDocumentItem,
+    VersionedTextDocumentIdentifier,
+    CompletionContext
+};
+use Microsoft\PhpParser\Node;
+use Sabre\Event\Promise;
+use Sabre\Uri;
+use function Genius257\ViewFileLanguageServer\{
+    isVendored, waitForEvent, getPackageName
+};
+use function Sabre\Event\coroutine;
 
 /**
  * Provides method handlers for all textDocument/* methods
@@ -27,72 +39,105 @@ use function substr_count;
 class TextDocument
 {
     /**
-     * @var LanguageServer
+     * The lanugage client object to call methods on the client
+     *
+     * @var \LanguageServer\LanguageClient
      */
-    protected $server;
+    protected $client;
 
     /**
-     * @var Codebase
+     * @var Project
      */
-    protected $codebase;
+    protected $project;
 
-    /** @var ?int */
-    protected $onchange_line_limit;
+    /**
+     * @var DefinitionResolver
+     */
+    protected $definitionResolver;
 
+    /**
+     * @var CompletionProvider
+     */
+    protected $completionProvider;
+
+    /**
+     * @var SignatureHelpProvider
+     */
+    protected $signatureHelpProvider;
+
+    /**
+     * @var ReadableIndex
+     */
+    protected $index;
+
+    /**
+     * @var \stdClass|null
+     */
+    protected $composerJson;
+
+    /**
+     * @var \stdClass|null
+     */
+    protected $composerLock;
+
+    /**
+     * @param PhpDocumentLoader $documentLoader
+     * @param DefinitionResolver $definitionResolver
+     * @param LanguageClient $client
+     * @param ReadableIndex $index
+     * @param \stdClass $composerJson
+     * @param \stdClass $composerLock
+     */
     public function __construct(
-        LanguageServer $server,
-        Codebase $codebase,
-        ?int $onchange_line_limit
+        PhpDocumentLoader $documentLoader,
+        DefinitionResolver $definitionResolver,
+        LanguageClient $client,
+        ReadableIndex $index,
+        \stdClass $composerJson = null,
+        \stdClass $composerLock = null
     ) {
-        $this->server = $server;
-        $this->codebase = $codebase;
-        $this->onchange_line_limit = $onchange_line_limit;
+        $this->documentLoader = $documentLoader;
+        $this->client = $client;
+        $this->definitionResolver = $definitionResolver;
+        $this->completionProvider = new CompletionProvider($this->definitionResolver, $index);
+        $this->signatureHelpProvider = new SignatureHelpProvider($this->definitionResolver, $index, $documentLoader);
+        $this->index = $index;
+        $this->composerJson = $composerJson;
+        $this->composerLock = $composerLock;
+    }
+
+    /**
+     * The document symbol request is sent from the client to the server to list all symbols found in a given text
+     * document.
+     *
+     * @param \LanguageServerProtocol\TextDocumentIdentifier $textDocument
+     * @return Promise <SymbolInformation[]>
+     */
+    public function documentSymbol(TextDocumentIdentifier $textDocument): Promise
+    {
+        return $this->documentLoader->getOrLoad($textDocument->uri)->then(function (PhpDocument $document) {
+            $symbols = [];
+            foreach ($document->getDefinitions() as $fqn => $definition) {
+                $symbols[] = $definition->symbolInformation;
+            }
+            return $symbols;
+        });
     }
 
     /**
      * The document open notification is sent from the client to the server to signal newly opened text documents. The
-     * document’s content is now managed by the client and the server must not try to read the document’s content using
-     * the document’s Uri. Open in this sense means it is managed by the client. It doesn’t necessarily mean that its
-     * content is presented in an editor. An open notification must not be sent more than once without a corresponding
-     * close notification send before. This means open and close notification must be balanced and the max open count
-     * for a particular textDocument is one. Note that a server’s ability to fulfill requests is independent of whether
-     * a text document is open or closed.
+     * document's truth is now managed by the client and the server must not try to read the document's truth using the
+     * document's uri.
      *
-     * @param TextDocumentItem $textDocument the document that was opened
+     * @param \LanguageServerProtocol\TextDocumentItem $textDocument The document that was opened.
+     * @return void
      */
-    public function didOpen(TextDocumentItem $textDocument): void
+    public function didOpen(TextDocumentItem $textDocument)
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        if (!$this->codebase->config->isInProjectDirs($file_path)) {
-            $this->server->verboseLog($file_path . ' is not in project');
-            return;
+        $document = $this->documentLoader->open($textDocument->uri, $textDocument->text);
+        if (!isVendored($document, $this->composerJson)) {
+            $this->client->textDocument->publishDiagnostics($textDocument->uri, $document->getDiagnostics());
         }
-
-        $this->codebase->file_provider->openFile($file_path);
-
-        $this->server->queueFileAnalysis($file_path, $textDocument->uri);
-    }
-
-    /**
-     * The document save notification is sent from the client to the server when the document was saved in the client
-     *
-     * @param TextDocumentItem $textDocument the document that was opened
-     */
-    public function didSave(TextDocumentItem $textDocument): void
-    {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        if (!$this->codebase->config->isInProjectDirs($file_path)) {
-            $this->server->verboseLog($file_path . ' is not in project');
-            return;
-        }
-
-        // reopen file
-        $this->codebase->removeTemporaryFileChanges($file_path);
-        $this->codebase->file_provider->setOpenContents($file_path, $textDocument->text);
-
-        $this->server->queueFileAnalysis($file_path, $textDocument->uri);
     }
 
     /**
@@ -100,53 +145,121 @@ class TextDocument
      *
      * @param \LanguageServerProtocol\VersionedTextDocumentIdentifier $textDocument
      * @param \LanguageServerProtocol\TextDocumentContentChangeEvent[] $contentChanges
+     * @return void
      */
-    public function didChange(VersionedTextDocumentIdentifier $textDocument, array $contentChanges): void
+    public function didChange(VersionedTextDocumentIdentifier $textDocument, array $contentChanges)
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        if (!$this->codebase->config->isInProjectDirs($file_path)) {
-            $this->server->verboseLog($file_path . ' is not in project');
-            return;
-        }
-
-        if ($this->onchange_line_limit === 0) {
-            return;
-        }
-
-        if (count($contentChanges) === 1 && $contentChanges[0]->range === null) {
-            $new_content = $contentChanges[0]->text;
-        } else {
-            throw new \UnexpectedValueException('Not expecting partial diff');
-        }
-
-        if ($this->onchange_line_limit !== null) {
-            if (substr_count($new_content, "\n") > $this->onchange_line_limit) {
-                return;
-            }
-        }
-
-        $this->codebase->addTemporaryFileChanges($file_path, $new_content);
-        $this->server->queueTemporaryFileAnalysis($file_path, $textDocument->uri);
+        $document = $this->documentLoader->get($textDocument->uri);
+        $document->updateContent($contentChanges[0]->text);
+        $this->client->textDocument->publishDiagnostics($textDocument->uri, $document->getDiagnostics());
     }
 
     /**
      * The document close notification is sent from the client to the server when the document got closed in the client.
-     * The document’s master now exists where the document’s Uri points to (e.g. if the document’s Uri is a file Uri the
-     * master now exists on disk). As with the open notification the close notification is about managing the document’s
-     * content. Receiving a close notification doesn’t mean that the document was open in an editor before. A close
-     * notification requires a previous open notification to be sent. Note that a server’s ability to fulfill requests
-     * is independent of whether a text document is open or closed.
+     * The document's truth now exists where the document's uri points to (e.g. if the document's uri is a file uri the
+     * truth now exists on disk).
      *
-     * @param TextDocumentIdentifier $textDocument The document that was closed
-     *
+     * @param \LanguageServerProtocol\TextDocumentIdentifier $textDocument The document that was closed
+     * @return void
      */
-    public function didClose(TextDocumentIdentifier $textDocument): void
+    public function didClose(TextDocumentIdentifier $textDocument)
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
+        $this->documentLoader->close($textDocument->uri);
+    }
 
-        $this->codebase->file_provider->closeFile($file_path);
-        $this->server->client->textDocument->publishDiagnostics($textDocument->uri, []);
+    /**
+     * The references request is sent from the client to the server to resolve project-wide references for the symbol
+     * denoted by the given text document position.
+     *
+     * @param ReferenceContext $context
+     * @return Promise <Location[]>
+     */
+    public function references(
+        ReferenceContext $context,
+        TextDocumentIdentifier $textDocument,
+        Position $position
+    ): Promise {
+        return coroutine(function () use ($textDocument, $position) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            $node = $document->getNodeAtPosition($position);
+            if ($node === null) {
+                return [];
+            }
+            $locations = [];
+            // Variables always stay in the boundary of the file and need to be searched inside their function scope
+            // by traversing the AST
+            if (
+
+            ($node instanceof Node\Expression\Variable && !($node->getParent()->getParent() instanceof Node\PropertyDeclaration))
+                || $node instanceof Node\Parameter
+                || $node instanceof Node\UseVariableName
+            ) {
+                if (isset($node->name) && $node->name instanceof Node\Expression) {
+                    return null;
+                }
+                // Find function/method/closure scope
+                $n = $node;
+
+                $n = $n->getFirstAncestor(Node\Statement\FunctionDeclaration::class, Node\MethodDeclaration::class, Node\Expression\AnonymousFunctionCreationExpression::class, Node\SourceFileNode::class);
+
+                if ($n === null) {
+                    $n = $node->getFirstAncestor(Node\Statement\ExpressionStatement::class)->getParent();
+                }
+
+                foreach ($n->getDescendantNodes() as $descendantNode) {
+                    if ($descendantNode instanceof Node\Expression\Variable &&
+                        $descendantNode->getName() === $node->getName()
+                    ) {
+                        $locations[] = LocationFactory::fromNode($descendantNode);
+                    }
+                }
+            } else {
+                // Definition with a global FQN
+                $fqn = DefinitionResolver::getDefinedFqn($node);
+
+                // Wait until indexing finished
+                if (!$this->index->isComplete()) {
+                    yield waitForEvent($this->index, 'complete');
+                }
+                if ($fqn === null) {
+                    $fqn = $this->definitionResolver->resolveReferenceNodeToFqn($node);
+                    if ($fqn === null) {
+                        return [];
+                    }
+                }
+                $refDocumentPromises = [];
+                foreach ($this->index->getReferenceUris($fqn) as $uri) {
+                    $refDocumentPromises[] = $this->documentLoader->getOrLoad($uri);
+                }
+                $refDocuments = yield Promise\all($refDocumentPromises);
+                foreach ($refDocuments as $document) {
+                    $refs = $document->getReferenceNodesByFqn($fqn);
+                    if ($refs !== null) {
+                        foreach ($refs as $ref) {
+                            $locations[] = LocationFactory::fromNode($ref);
+                        }
+                    }
+                }
+            }
+            return $locations;
+        });
+    }
+
+    /**
+     * The signature help request is sent from the client to the server to request signature information at a given
+     * cursor position.
+     *
+     * @param TextDocumentIdentifier $textDocument The text document
+     * @param Position               $position     The position inside the text document
+     *
+     * @return Promise <SignatureHelp>
+     */
+    public function signatureHelp(TextDocumentIdentifier $textDocument, Position $position): Promise
+    {
+        return coroutine(function () use ($textDocument, $position) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            return $this->signatureHelpProvider->getSignatureHelp($document, $position);
+        });
     }
 
     /**
@@ -155,87 +268,86 @@ class TextDocument
      *
      * @param TextDocumentIdentifier $textDocument The text document
      * @param Position $position The position inside the text document
-     * @psalm-return Promise<Location>|Promise<null>
+     * @return Promise <Location|Location[]>
      */
     public function definition(TextDocumentIdentifier $textDocument, Position $position): Promise
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        try {
-            $reference_location = $this->codebase->getReferenceAtPosition($file_path, $position);
-        } catch (\Psalm\Exception\UnanalyzedFileException $e) {
-            $this->codebase->file_provider->openFile($file_path);
-            $this->server->queueFileAnalysis($file_path, $textDocument->uri);
-
-            return new Success(null);
-        }
-
-        if ($reference_location === null) {
-            return new Success(null);
-        }
-
-        [$reference] = $reference_location;
-
-        $code_location = $this->codebase->getSymbolLocation($file_path, $reference);
-
-        if (!$code_location) {
-            return new Success(null);
-        }
-
-        return new Success(
-            new Location(
-                LanguageServer::pathToUri($code_location->file_path),
-                new Range(
-                    new Position($code_location->getLineNumber() - 1, $code_location->getColumn() - 1),
-                    new Position($code_location->getEndLineNumber() - 1, $code_location->getEndColumn() - 1)
-                )
-            )
-        );
+        return coroutine(function () use ($textDocument, $position) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            $node = $document->getNodeAtPosition($position);
+            if ($node === null) {
+                return [];
+            }
+            // Handle definition nodes
+            $fqn = DefinitionResolver::getDefinedFqn($node);
+            while (true) {
+                if ($fqn) {
+                    $def = $this->index->getDefinition($fqn);
+                } else {
+                    // Handle reference nodes
+                    $def = $this->definitionResolver->resolveReferenceNodeToDefinition($node);
+                }
+                // If no result was found and we are still indexing, try again after the index was updated
+                if ($def !== null || $this->index->isComplete()) {
+                    break;
+                }
+                yield waitForEvent($this->index, 'definition-added');
+            }
+            if (
+                $def === null
+                || $def->symbolInformation === null
+                || Uri\parse($def->symbolInformation->location->uri)['scheme'] === 'phpstubs'
+            ) {
+                return [];
+            }
+            return $def->symbolInformation->location;
+        });
     }
 
     /**
-     * The hover request is sent from the client to the server to request
-     * hover information at a given text document position.
+     * The hover request is sent from the client to the server to request hover information at a given text document position.
      *
      * @param TextDocumentIdentifier $textDocument The text document
      * @param Position $position The position inside the text document
-     * @psalm-return Promise<Hover>|Promise<null>
+     * @return Promise <Hover>
      */
     public function hover(TextDocumentIdentifier $textDocument, Position $position): Promise
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        try {
-            $reference_location = $this->codebase->getReferenceAtPosition($file_path, $position);
-        } catch (\Psalm\Exception\UnanalyzedFileException $e) {
-            $this->codebase->file_provider->openFile($file_path);
-            $this->server->queueFileAnalysis($file_path, $textDocument->uri);
-
-            return new Success(null);
-        }
-
-        if ($reference_location === null) {
-            return new Success(null);
-        }
-
-        [$reference, $range] = $reference_location;
-
-        $symbol_information = $this->codebase->getSymbolInformation($file_path, $reference);
-
-        if ($symbol_information === null) {
-            return new Success(null);
-        }
-
-        $content = "```php\n" . $symbol_information['type'] . "\n```";
-        if (isset($symbol_information['description'])) {
-            $content .= "\n---\n" . $symbol_information['description'];
-        }
-        $contents = new MarkupContent(
-            MarkupKind::MARKDOWN,
-            $content
-        );
-
-        return new Success(new Hover($contents, $range));
+        return coroutine(function () use ($textDocument, $position) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            // Find the node under the cursor
+            $node = $document->getNodeAtPosition($position);
+            if ($node === null) {
+                return new Hover([]);
+            }
+            $definedFqn = DefinitionResolver::getDefinedFqn($node);
+            while (true) {
+                if ($definedFqn) {
+                    // Support hover for definitions
+                    $def = $this->index->getDefinition($definedFqn);
+                } else {
+                    // Get the definition for whatever node is under the cursor
+                    $def = $this->definitionResolver->resolveReferenceNodeToDefinition($node);
+                }
+                // If no result was found and we are still indexing, try again after the index was updated
+                if ($def !== null || $this->index->isComplete()) {
+                    break;
+                }
+                yield waitForEvent($this->index, 'definition-added');
+            }
+            $range = RangeFactory::fromNode($node);
+            if ($def === null) {
+                return new Hover([], $range);
+            }
+            $contents = [];
+            if ($def->declarationLine) {
+                $contents[] = new MarkedString('php', "<?php\n" . $def->declarationLine);
+            }
+            if ($def->documentation) {
+                $contents[] = $def->documentation;
+            }
+            return new Hover($contents, $range);
+        });
     }
 
     /**
@@ -248,86 +360,69 @@ class TextDocument
      * interface then a 'completionItem/resolve' request is sent with the selected completion item as a param. The
      * returned completion item should have the documentation property filled in.
      *
-     * @param TextDocumentIdentifier $textDocument The text document
+     * @param TextDocumentIdentifier The text document
      * @param Position $position The position
-     * @psalm-return Promise<array<empty, empty>>|Promise<CompletionList>
+     * @param CompletionContext|null $context The completion context
+     * @return Promise <CompletionItem[]|CompletionList>
      */
-    public function completion(TextDocumentIdentifier $textDocument, Position $position): Promise
+    public function completion(TextDocumentIdentifier $textDocument, Position $position, CompletionContext $context = null): Promise
     {
-        $this->server->doAnalysis();
-
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-        if (!$this->codebase->config->isInProjectDirs($file_path)) {
-            return new Success([]);
-        }
-
-        try {
-            $completion_data = $this->codebase->getCompletionDataAtPosition($file_path, $position);
-        } catch (\Psalm\Exception\UnanalyzedFileException $e) {
-            $this->codebase->file_provider->openFile($file_path);
-            $this->server->queueFileAnalysis($file_path, $textDocument->uri);
-
-            return new Success([]);
-        }
-
-        $type_context = $this->codebase->getTypeContextAtPosition($file_path, $position);
-
-        if (!$completion_data && !$type_context) {
-            error_log('completion not found at ' . $position->line . ':' . $position->character);
-
-            return new Success([]);
-        }
-
-        if ($completion_data) {
-            [$recent_type, $gap, $offset] = $completion_data;
-
-            if ($gap === '->' || $gap === '::') {
-                $completion_items = $this->codebase->getCompletionItemsForClassishThing($recent_type, $gap);
-            } elseif ($gap === '[') {
-                $completion_items = $this->codebase->getCompletionItemsForArrayKeys($recent_type);
-            } else {
-                $completion_items = $this->codebase->getCompletionItemsForPartialSymbol(
-                    $recent_type,
-                    $offset,
-                    $file_path
-                );
-            }
-        } else {
-            $completion_items = $this->codebase->getCompletionItemsForType($type_context);
-        }
-
-        return new Success(new CompletionList($completion_items, false));
+        return coroutine(function () use ($textDocument, $position, $context) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            return $this->completionProvider->provideCompletion($document, $position, $context);
+        });
     }
 
     /**
-     * The signature help request is sent from the client to the server to request signature
-     * information at a given cursor position.
+     * This method is the same as textDocument/definition, except that
+     *
+     * The method returns metadata about the definition (the same metadata that workspace/xreferences searches for).
+     * The concrete location to the definition (location field) is optional. This is useful because the language server
+     * might not be able to resolve a goto definition request to a concrete location (e.g. due to lack of dependencies)
+     * but still may know some information about it.
+     *
+     * @param TextDocumentIdentifier $textDocument The text document
+     * @param Position               $position     The position inside the text document
+     * @return Promise <SymbolLocationInformation[]>
      */
-    public function signatureHelp(TextDocumentIdentifier $textDocument, Position $position): Promise
+    public function xdefinition(TextDocumentIdentifier $textDocument, Position $position): Promise
     {
-        $file_path = LanguageServer::uriToPath($textDocument->uri);
-
-        try {
-            $argument_location = $this->codebase->getFunctionArgumentAtPosition($file_path, $position);
-        } catch (\Psalm\Exception\UnanalyzedFileException $e) {
-            $this->codebase->file_provider->openFile($file_path);
-            $this->server->queueFileAnalysis($file_path, $textDocument->uri);
-
-            return new Success(new \LanguageServerProtocol\SignatureHelp());
-        }
-
-        if ($argument_location === null) {
-            return new Success(new \LanguageServerProtocol\SignatureHelp());
-        }
-
-        $signature_information = $this->codebase->getSignatureInformation($argument_location[0], $file_path);
-
-        if (!$signature_information) {
-            return new Success(new \LanguageServerProtocol\SignatureHelp());
-        }
-
-        return new Success(new \LanguageServerProtocol\SignatureHelp([
-            $signature_information,
-        ], 0, $argument_location[1]));
+        return coroutine(function () use ($textDocument, $position) {
+            $document = yield $this->documentLoader->getOrLoad($textDocument->uri);
+            $node = $document->getNodeAtPosition($position);
+            if ($node === null) {
+                return [];
+            }
+            // Handle definition nodes
+            $fqn = DefinitionResolver::getDefinedFqn($node);
+            while (true) {
+                if ($fqn) {
+                    $def = $this->index->getDefinition($fqn);
+                } else {
+                    // Handle reference nodes
+                    $def = $this->definitionResolver->resolveReferenceNodeToDefinition($node);
+                }
+                // If no result was found and we are still indexing, try again after the index was updated
+                if ($def !== null || $this->index->isComplete()) {
+                    break;
+                }
+                yield waitForEvent($this->index, 'definition-added');
+            }
+            if (
+                $def === null
+                || $def->symbolInformation === null
+                || Uri\parse($def->symbolInformation->location->uri)['scheme'] === 'phpstubs'
+            ) {
+                return [];
+            }
+            // if Definition is inside a dependency, use the package name
+            $packageName = getPackageName($def->symbolInformation->location->uri, $this->composerJson);
+            // else use the package name of the root package (if exists)
+            if (!$packageName && $this->composerJson !== null) {
+                $packageName = $this->composerJson->name;
+            }
+            $descriptor = new SymbolDescriptor($def->fqn, new PackageDescriptor($packageName));
+            return [new SymbolLocationInformation($descriptor, $def->symbolInformation->location)];
+        });
     }
 }
