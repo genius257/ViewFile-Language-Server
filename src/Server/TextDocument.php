@@ -100,7 +100,7 @@ class TextDocument
         $this->client = $client;
         $this->definitionResolver = $definitionResolver;
         $this->completionProvider = new CompletionProvider($this->definitionResolver, $index);
-        $this->signatureHelpProvider = new SignatureHelpProvider($this->definitionResolver, $index, $documentLoader);
+        //$this->signatureHelpProvider = new SignatureHelpProvider($this->definitionResolver, $index, $documentLoader);
         $this->index = $index;
         $this->composerJson = $composerJson;
         $this->composerLock = $composerLock;
