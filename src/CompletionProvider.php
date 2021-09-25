@@ -138,7 +138,7 @@ class CompletionProvider
      * @param DefinitionResolver $definitionResolver
      * @param ReadableIndex $index
      */
-    public function __construct(?DefinitionResolver $definitionResolver, ReadableIndex $index)
+    public function __construct(?DefinitionResolver $definitionResolver, ?ReadableIndex $index)
     {
         $this->definitionResolver = $definitionResolver;
         $this->index = $index;
