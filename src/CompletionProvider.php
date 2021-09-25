@@ -3,9 +3,9 @@ declare(strict_types = 1);
 
 namespace Genius257\ViewFileLanguageServer;
 
-use Genius257\ViewFileLanguageServer\Index\ReadableIndex;
-use Genius257\ViewFileLanguageServer\Factory\CompletionItemFactory;
-use Genius257\ViewFileLanguageServerProtocol\{
+use LanguageServer\Index\ReadableIndex;
+use LanguageServer\Factory\CompletionItemFactory;
+use LanguageServerProtocol\{
     TextEdit,
     Range,
     Position,
@@ -19,7 +19,7 @@ use Microsoft\PhpParser;
 use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\ResolvedName;
 use Generator;
-use function LanguageServer\FqnUtilities\{
+use function Genius257\ViewFileLanguageServer\FqnUtilities\{
     nameConcat,
     nameGetFirstPart,
     nameGetParent,
