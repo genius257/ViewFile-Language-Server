@@ -3,8 +3,8 @@ declare(strict_types = 1);
 
 namespace Genius257\ViewFileLanguageServer;
 
-use LanguageServer\Index\ReadableIndex;
-use LanguageServer\Factory\CompletionItemFactory;
+use Genius257\ViewFileLanguageServer\Index\ReadableIndex;
+use Genius257\ViewFileLanguageServer\Factory\CompletionItemFactory;
 use LanguageServerProtocol\{
     TextEdit,
     Range,
