@@ -89,12 +89,12 @@ class TextDocument
      * @param \stdClass $composerLock
      */
     public function __construct(
-        PhpDocumentLoader $documentLoader,
-        DefinitionResolver $definitionResolver,
+        ?PhpDocumentLoader $documentLoader,
+        ?DefinitionResolver $definitionResolver,
         LanguageClient $client,
-        ReadableIndex $index,
-        \stdClass $composerJson = null,
-        \stdClass $composerLock = null
+        ?ReadableIndex $index,
+        ?\stdClass $composerJson = null,
+        ?\stdClass $composerLock = null
     ) {
         $this->documentLoader = $documentLoader;
         $this->client = $client;
