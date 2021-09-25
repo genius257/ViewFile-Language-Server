@@ -127,6 +127,9 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                 $result = null;
                 $error = null;
                 try {
+                    // $logger = new StderrLogger();
+                    // $logger->debug($msg->body->method);
+
                     // Invoke the method handler to get a result
                     $result = yield $this->dispatch($msg->body);
                 } catch (AdvancedJsonRpc\Error $e) {
@@ -241,7 +244,6 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                 $indexer->index()->otherwise('\\Genius257\\ViewFileLanguageServer\\crash');
                 */
             }
-            /*
 
             if ($this->textDocument === null) {
                 $this->textDocument = new Server\TextDocument(
@@ -253,6 +255,7 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
                     $this->composerLock
                 );
             }
+            /*
             if ($this->workspace === null) {
                 $this->workspace = new Server\Workspace(
                     $this->client,
