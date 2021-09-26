@@ -190,19 +190,17 @@ class LanguageServer extends AdvancedJsonRpc\Dispatcher
             $dependenciesIndex = new DependenciesIndex;
             $sourceIndex = new Index;
             $this->projectIndex = new ProjectIndex($sourceIndex, $dependenciesIndex, $this->composerJson);
-            //$stubsIndex = StubsIndex::read();
-            //$this->globalIndex = new GlobalIndex($stubsIndex, $this->projectIndex);
+            $this->globalIndex = new GlobalIndex($this->projectIndex);
 
             // The DefinitionResolver should look in stubs, the project source and dependencies
-            //$this->definitionResolver = new DefinitionResolver($this->globalIndex);
+            $this->definitionResolver = new DefinitionResolver($this->globalIndex);
 
-            /*
             $this->documentLoader = new PhpDocumentLoader(
                 $this->contentRetriever,
                 $this->projectIndex,
                 $this->definitionResolver
             );
-            */
+
             if ($rootPath !== null) {
                 yield $this->beforeIndex($rootPath);
                 /*
