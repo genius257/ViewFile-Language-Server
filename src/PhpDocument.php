@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer;
 
 use Genius257\ViewFileLanguageServer\Index\Index;
-use Genius257\ViewFileLanguageServerProtocol\{
+use LanguageServerProtocol\{
     Diagnostic, Position, Range
 };
 use Microsoft\PhpParser;
