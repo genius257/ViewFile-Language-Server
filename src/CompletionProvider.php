@@ -181,6 +181,9 @@ class CompletionProvider
             $node = $node->parent;
         }
 
+        // $logger = new \Genius257\ViewFileLanguageServer\StderrLogger();
+        // $logger->debug(get_class($node));
+
         // Inspect the type of expression under the cursor
 
         $content = $doc->getContent();
@@ -209,89 +212,6 @@ class CompletionProvider
                 stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), '<?php')
             );
             $list->items[] = $item;
-
-        } elseif (
-            $node instanceof Node\Expression\Variable
-            && !(
-                $node->parent instanceof Node\Expression\ScopedPropertyAccessExpression
-                && $node->parent->memberName === $node
-            )
-        ) {
-            // Variables
-            //
-            //    $|
-            //    $a|
-
-            // Find variables, parameters and use statements in the scope
-            $namePrefix = $node->getName() ?? '';
-            foreach ($this->suggestVariablesAtNode($node, $namePrefix) as $var) {
-                $item = new CompletionItem;
-                $item->kind = CompletionItemKind::VARIABLE;
-                $item->label = '$' . $var->getName();
-                $item->documentation = $this->definitionResolver->getDocumentationFromNode($var);
-                $item->detail = (string)$this->definitionResolver->getTypeFromNode($var);
-                $item->textEdit = new TextEdit(
-                    new Range($pos, $pos),
-                    stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), $item->label)
-                );
-                $list->items[] = $item;
-            }
-
-        } elseif ($node instanceof Node\Expression\MemberAccessExpression) {
-            // Member access expressions
-            //
-            //    $a->c|
-            //    $a->|
-
-            // Multiple prefixes for all possible types
-            $fqns = FqnUtilities\getFqnsFromType(
-                $this->definitionResolver->resolveExpressionNodeToType($node->dereferencableExpression)
-            );
-
-            // The FQNs of the symbol and its parents (eg the implemented interfaces)
-            foreach ($this->expandParentFqns($fqns) as $parentFqn) {
-                // Add the object access operator to only get members of all parents
-                $prefix = $parentFqn . '->';
-                $prefixLen = strlen($prefix);
-                // Collect fqn definitions
-                foreach ($this->index->getChildDefinitionsForFqn($parentFqn) as $fqn => $def) {
-                    if (substr($fqn, 0, $prefixLen) === $prefix && $def->isMember) {
-                        $list->items[] = CompletionItemFactory::fromDefinition($def);
-                    }
-                }
-            }
-
-        } elseif (
-            ($scoped = $node->parent) instanceof Node\Expression\ScopedPropertyAccessExpression ||
-            ($scoped = $node) instanceof Node\Expression\ScopedPropertyAccessExpression
-        ) {
-            // Static class members and constants
-            //
-            //     A\B\C::$a|
-            //     A\B\C::|
-            //     A\B\C::$|
-            //     A\B\C::foo|
-            //
-            //     TODO: $a::|
-
-            // Resolve all possible types to FQNs
-            $fqns = FqnUtilities\getFqnsFromType(
-                $classType = $this->definitionResolver->resolveExpressionNodeToType($scoped->scopeResolutionQualifier)
-            );
-
-            // The FQNs of the symbol and its parents (eg the implemented interfaces)
-            foreach ($this->expandParentFqns($fqns) as $parentFqn) {
-                // Append :: operator to only get static members of all parents
-                $prefix = strtolower($parentFqn . '::');
-                $prefixLen = strlen($prefix);
-                // Collect fqn definitions
-                foreach ($this->index->getChildDefinitionsForFqn($parentFqn) as $fqn => $def) {
-                    if (substr(strtolower($fqn), 0, $prefixLen) === $prefix && $def->isMember) {
-                        $list->items[] = CompletionItemFactory::fromDefinition($def);
-                    }
-                }
-            }
-
         } elseif (
             ParserHelpers\isConstantFetch($node)
             // Creation gets set in case of an instantiation (`new` expression)
