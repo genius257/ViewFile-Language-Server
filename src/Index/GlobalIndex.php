@@ -9,11 +9,6 @@ namespace Genius257\ViewFileLanguageServer\Index;
 class GlobalIndex extends AbstractAggregateIndex
 {
     /**
-     * @var Index
-     */
-    private $stubsIndex;
-
-    /**
      * @var ProjectIndex
      */
     private $projectIndex;
@@ -22,9 +17,8 @@ class GlobalIndex extends AbstractAggregateIndex
      * @param StubsIndex   $stubsIndex
      * @param ProjectIndex $projectIndex
      */
-    public function __construct(StubsIndex $stubsIndex, ProjectIndex $projectIndex)
+    public function __construct(ProjectIndex $projectIndex)
     {
-        $this->stubsIndex = $stubsIndex;
         $this->projectIndex = $projectIndex;
         parent::__construct();
     }
@@ -34,6 +28,6 @@ class GlobalIndex extends AbstractAggregateIndex
      */
     protected function getIndexes(): array
     {
-        return [$this->stubsIndex, $this->projectIndex];
+        return [$this->projectIndex];
     }
 }
