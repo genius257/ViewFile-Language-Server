@@ -6,7 +6,7 @@ namespace Genius257\ViewFileLanguageServer\FilesFinder;
 use Webmozart\Glob\Iterator\GlobIterator;
 use Sabre\Event\Promise;
 use function Sabre\Event\coroutine;
-use function LanguageServer\{pathToUri, timeout};
+use function Genius257\ViewFileLanguageServer\{pathToUri, timeout};
 
 class FileSystemFilesFinder implements FilesFinder
 {

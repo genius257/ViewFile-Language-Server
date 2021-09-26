@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer\ContentRetriever;
 
 use Sabre\Event\Promise;
-use function LanguageServer\uriToPath;
+use function Genius257\ViewFileLanguageServer\uriToPath;
 
 /**
  * Retrieves document content from the file system

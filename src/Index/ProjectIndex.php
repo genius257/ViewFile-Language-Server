@@ -3,7 +3,7 @@ declare(strict_types = 1);
 
 namespace Genius257\ViewFileLanguageServer\Index;
 
-use function LanguageServer\getPackageName;
+use function Genius257\ViewFileLanguageServer\getPackageName;
 
 /**
  * A project index manages the source and dependency indexes
