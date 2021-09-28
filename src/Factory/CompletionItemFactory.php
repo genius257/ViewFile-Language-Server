@@ -3,9 +3,9 @@
 namespace Genius257\ViewFileLanguageServer\Factory;
 
 use Genius257\ViewFileLanguageServer\Definition;
-use Genius257\ViewFileLanguageServerProtocol\CompletionItem;
-use Genius257\ViewFileLanguageServerProtocol\CompletionItemKind;
-use Genius257\ViewFileLanguageServerProtocol\SymbolKind;
+use LanguageServerProtocol\CompletionItem;
+use LanguageServerProtocol\CompletionItemKind;
+use LanguageServerProtocol\SymbolKind;
 
 class CompletionItemFactory
 {

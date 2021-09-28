@@ -2,9 +2,9 @@
 
 namespace Genius257\ViewFileLanguageServer\Factory;
 
-use Genius257\ViewFileLanguageServerProtocol\Location;
-use Genius257\ViewFileLanguageServerProtocol\SymbolInformation;
-use Genius257\ViewFileLanguageServerProtocol\SymbolKind;
+use LanguageServerProtocol\Location;
+use LanguageServerProtocol\SymbolInformation;
+use LanguageServerProtocol\SymbolKind;
 use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\ResolvedName;
 use Genius257\ViewFileLanguageServer\Factory\LocationFactory;

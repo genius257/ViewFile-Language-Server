@@ -5,7 +5,7 @@ namespace Genius257\ViewFileLanguageServer;
 
 use Genius257\ViewFileLanguageServer\Index\ReadableIndex;
 use Genius257\ViewFileLanguageServer\Factory\SymbolInformationFactory;
-use Genius257\ViewFileLanguageServerProtocol\SymbolInformation;
+use LanguageServerProtocol\SymbolInformation;
 use Microsoft\PhpParser;
 use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\FunctionLike;

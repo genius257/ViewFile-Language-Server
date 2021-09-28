@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer\Client;
 
 use Genius257\ViewFileLanguageServer\ClientHandler;
-use Genius257\ViewFileLanguageServerProtocol\TextDocumentIdentifier;
+use LanguageServerProtocol\TextDocumentIdentifier;
 use Sabre\Event\Promise;
 use JsonMapper;
 

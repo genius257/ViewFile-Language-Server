@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer\ContentRetriever;
 
 use Genius257\ViewFileLanguageServer\LanguageClient;
-use Genius257\ViewFileLanguageServerProtocol\{TextDocumentIdentifier, TextDocumentItem};
+use LanguageServerProtocol\{TextDocumentIdentifier, TextDocumentItem};
 use Sabre\Event\Promise;
 
 /**

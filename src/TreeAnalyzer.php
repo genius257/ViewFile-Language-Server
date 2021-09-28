@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer;
 
 use Genius257\ViewFileLanguageServer\Factory\RangeFactory;
-use Genius257\ViewFileLanguageServerProtocol\{Diagnostic, DiagnosticSeverity, Range, Position};
+use LanguageServerProtocol\{Diagnostic, DiagnosticSeverity, Range, Position};
 use phpDocumentor\Reflection\DocBlockFactory;
 use Microsoft\PhpParser;
 use Microsoft\PhpParser\Node;

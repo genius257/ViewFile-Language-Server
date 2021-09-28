@@ -6,7 +6,7 @@ namespace Genius257\ViewFileLanguageServer;
 use Genius257\ViewFileLanguageServer\Cache\Cache;
 use Genius257\ViewFileLanguageServer\FilesFinder\FilesFinder;
 use Genius257\ViewFileLanguageServer\Index\{DependenciesIndex, Index};
-use Genius257\ViewFileLanguageServerProtocol\MessageType;
+use LanguageServerProtocol\MessageType;
 use Webmozart\PathUtil\Path;
 use Sabre\Event\Promise;
 use function Sabre\Event\coroutine;

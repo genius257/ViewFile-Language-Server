@@ -5,7 +5,7 @@ namespace Genius257\ViewFileLanguageServer;
 
 use Genius257\ViewFileLanguageServer\Index\ReadableIndex;
 use phpDocumentor\Reflection\{Types, Type, TypeResolver};
-use Genius257\ViewFileLanguageServerProtocol\SymbolInformation;
+use LanguageServerProtocol\SymbolInformation;
 use Generator;
 
 /**

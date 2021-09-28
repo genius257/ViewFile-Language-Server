@@ -2,8 +2,8 @@
 
 namespace Genius257\ViewFileLanguageServer\Factory;
 
-use Genius257\ViewFileLanguageServerProtocol\Position;
-use Genius257\ViewFileLanguageServerProtocol\Range;
+use LanguageServerProtocol\Position;
+use LanguageServerProtocol\Range;
 use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\PositionUtilities;
 

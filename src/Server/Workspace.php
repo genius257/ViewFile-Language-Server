@@ -2,8 +2,8 @@
 declare(strict_types = 1);
 namespace Genius257\ViewFileLanguageServer\Server;
 
-use Genius257\ViewFileLanguageServerProtocol\FileChangeType;
-use Genius257\ViewFileLanguageServerProtocol\FileEvent;
+use LanguageServerProtocol\FileChangeType;
+use LanguageServerProtocol\FileEvent;
 use Psalm\Codebase;
 use Genius257\ViewFileLanguageServer\LanguageServer;
 
