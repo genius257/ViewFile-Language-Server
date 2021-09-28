@@ -19,6 +19,8 @@ use Microsoft\PhpParser;
 use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\ResolvedName;
 use Generator;
+use Genius257\ViewFileLanguageServer\ViewFile\ComponentReflection;
+
 use function Genius257\ViewFileLanguageServer\FqnUtilities\{
     nameConcat,
     nameGetFirstPart,
@@ -203,6 +205,38 @@ class CompletionProvider
             )
             || $pos == new Position(0, 0)
         ) {
+            $cursorContent = substr($doc->getContent(), $node->getFullStart(), $pos->toOffset($doc->getContent())-$node->getFullStart());
+            $success = preg_match('/<([a-zA-Z0-9]+[\\\\a-zA-Z0-9]*)(?:\s+([^\s=<>]+(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+)\s+)?|\s+)*)?$/', $cursorContent, $matches);
+
+            if ($success) {
+                $prefix = $matches[1];
+                $fqsen = $prefix;
+                $workspace = dirname($doc->getUri());
+
+                if (count($matches) === 3 || (count($matches) === 2 && substr($matches[0], -1) === " ")) {
+                    try {
+                        $cr = new ComponentReflection($fqsen, $workspace);
+                        $setters = $cr->getSetters();
+                        foreach ($setters as $key => $value) {
+                            $item = new CompletionItem($key, CompletionItemKind::KEYWORD);
+                            $item->textEdit = new TextEdit(
+                                new Range($pos, $pos),
+                                stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), $key)
+                            );
+                            $list->items[] = $item;
+                        }
+                    } catch (\Exception $e) {
+                        // currently ComponentReflection failures throws standard exceptions.
+                    }
+                } else { // tagname suggestions
+                    $item = new CompletionItem("DEBUG", CompletionItemKind::KEYWORD);
+                    $item->textEdit = new TextEdit(
+                        new Range($pos, $pos),
+                        stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), "DEBUG")
+                    );
+                    $list->items[] = $item;
+                }
+            }
             // HTML, beginning of file
 
             // Inside HTML and at the beginning of the file, propose <?php
