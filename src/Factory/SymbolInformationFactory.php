@@ -25,7 +25,7 @@ class SymbolInformationFactory
             $symbol->kind = SymbolKind::CLASS_;
         } else if ($node instanceof Node\Statement\TraitDeclaration) {
             $symbol->kind = SymbolKind::CLASS_;
-        } else if (\LanguageServer\ParserHelpers\isConstDefineExpression($node)) {
+        } else if (\Genius257\ViewFileLanguageServer\ParserHelpers\isConstDefineExpression($node)) {
             // constants with define() like
             // define('TEST_DEFINE_CONSTANT', false);
             $symbol->kind = SymbolKind::CONSTANT;

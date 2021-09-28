@@ -18,7 +18,7 @@ class DefinitionResolver
     /**
      * The current project index (for retrieving existing definitions)
      *
-     * @var \LanguageServer\Index\ReadableIndex
+     * @var \Genius257\ViewFileLanguageServer\Index\ReadableIndex
      */
     private $index;
 

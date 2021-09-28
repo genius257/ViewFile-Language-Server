@@ -41,7 +41,7 @@ class TextDocument
     /**
      * The lanugage client object to call methods on the client
      *
-     * @var \LanguageServer\LanguageClient
+     * @var \Genius257\ViewFileLanguageServer\LanguageClient
      */
     protected $client;
 
