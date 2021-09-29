@@ -206,6 +206,16 @@ class CompletionProvider
             || $pos == new Position(0, 0)
         ) {
             $cursorContent = substr($doc->getContent(), $node->getFullStart(), $pos->toOffset($doc->getContent())-$node->getFullStart());
+            /** @var Node\Statement\InlineHtml $previousSiblingNode */
+            $previousSiblingNode = $node;
+            /** @var Node $previousSiblingNode */
+            while ($previousSiblingNode = $previousSiblingNode->getPreviousSibling()) {
+                if (!($previousSiblingNode instanceof Node\Statement\InlineHtml)) {
+                    continue;
+                }
+                /** @var Node\Statement\InlineHtml $previousSiblingNode */
+                $cursorContent = $previousSiblingNode->getFullText().$cursorContent; // we prepend HTML content, to allow attribute checks to "work" in mixed lang block content situations (like inline php tags)
+            }
             $success = preg_match('/<([a-zA-Z0-9]+[\\\\a-zA-Z0-9]*)(?:\s+([^\s=<>]+(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+)\s+)?|\s+)*)?$/', $cursorContent, $matches);
 
             if ($success) {
@@ -215,37 +225,55 @@ class CompletionProvider
 
                 if (count($matches) === 3 || (count($matches) === 2 && substr($matches[0], -1) === " ")) {
                     try {
+                        preg_match_all('/(?:\s+(?:([^\s=<>]+)(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+))?))/', substr(substr($matches[0], 1 + strlen($matches[1])), 0, strlen($matches[2]??"")*-1), $existingTagAttributes);
+
                         $cr = new ComponentReflection($fqsen, $workspace);
                         $setters = $cr->getSetters();
                         foreach ($setters as $key => $value) {
+                            $stripStringOverlap = stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), $key);
+
+                            if (trim($matches[2]??"") !== "" && substr($key, 0, strlen($matches[2])) !== $matches[2]) {
+                                continue;// if the current attribute text does not match left part of current key, we don't suggest it.
+                            }
+
+                            if (in_array($key, $existingTagAttributes[1], true)) {
+                                continue;// if a tag has already been defined on the tag, we don't suggest it.
+                            }
+
                             $item = new CompletionItem($key, CompletionItemKind::KEYWORD);
                             $item->textEdit = new TextEdit(
                                 new Range($pos, $pos),
-                                stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), $key)
+                                $stripStringOverlap
                             );
+                            $item->detail = "default value: ".json_encode($value);
                             $list->items[] = $item;
                         }
                     } catch (\Exception $e) {
                         // currently ComponentReflection failures throws standard exceptions.
                     }
                 } else { // tagname suggestions
+                    //Currently not supported
+                    /*
                     $item = new CompletionItem("DEBUG", CompletionItemKind::KEYWORD);
                     $item->textEdit = new TextEdit(
                         new Range($pos, $pos),
                         stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), "DEBUG")
                     );
                     $list->items[] = $item;
+                    */
                 }
             }
             // HTML, beginning of file
 
             // Inside HTML and at the beginning of the file, propose <?php
+            /*
             $item = new CompletionItem('<?php', CompletionItemKind::KEYWORD);
             $item->textEdit = new TextEdit(
                 new Range($pos, $pos),
                 stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), '<?php')
             );
             $list->items[] = $item;
+            */
         } elseif (
             ParserHelpers\isConstantFetch($node)
             // Creation gets set in case of an instantiation (`new` expression)
