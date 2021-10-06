@@ -13,10 +13,9 @@
         }
     ],
     "require": {
-        "genius257/view": "dev-master",
+        "genius257/view": "^1.0.1",
         "phpdocumentor/reflection": "^4.0.1",
         "composer/composer": "*",
-
         "php": "^7.0",
         "composer/xdebug-handler": "^1.0",
         "felixfbecker/advanced-json-rpc": "^3.0.0",
@@ -35,12 +34,6 @@
     },
     "minimum-stability": "dev",
     "prefer-stable" : true,
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/genius257/view.git"
-        }
-    ],
     "bin": [
         "bin/viewfile-language-server.php"
     ],
