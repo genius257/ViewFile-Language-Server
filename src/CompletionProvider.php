@@ -225,7 +225,7 @@ class CompletionProvider
 
                 if (count($matches) === 3 || (count($matches) === 2 && substr($matches[0], -1) === " ")) {
                     try {
-                        preg_match_all('/(?:\s+(?:([^\s=<>]+)(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+))?))/', substr(substr($matches[0], 1 + strlen($matches[1])), 0, strlen($matches[2]??"")*-1), $existingTagAttributes);
+                        preg_match_all('/(?:\s+(?:([^\s=<>]+)(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+))?))/', substr(substr($matches[0], 1 + strlen($matches[1])), 0, (substr($matches[2]??"", -1) === " ") ? -1 : strlen($matches[2]??"")*-1), $existingTagAttributes);
 
                         $cr = new ComponentReflection($fqsen, $workspace);
                         $setters = $cr->getSetters();
