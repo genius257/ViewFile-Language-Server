@@ -199,7 +199,7 @@ class CompletionProvider
                     // Make sure to not suggest on the > trigger character in HTML
                     && (
                         $context->triggerKind === CompletionTriggerKind::INVOKED
-                        || $context->triggerCharacter === '<'
+                        || $context->triggerKind === 3 // Completion was re-triggered as the current completion list os incomplete (3 === TriggerForIncompleteCompletions)
                     )
                 )
             )
