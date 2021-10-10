@@ -232,7 +232,7 @@ class CompletionProvider
                         foreach ($setters as $key => $value) {
                             $stripStringOverlap = stripStringOverlap($doc->getRange(new Range(new Position(0, 0), $pos)), $key);
 
-                            if (trim($matches[2]??"") !== "" && substr($key, 0, strlen($matches[2])) !== $matches[2]) {
+                            if (trim($matches[2]??"") !== "" && substr($matches[2], -1) !== " " && substr($key, 0, strlen($matches[2])) !== $matches[2]) {
                                 continue;// if the current attribute text does not match left part of current key, we don't suggest it.
                             }
 
