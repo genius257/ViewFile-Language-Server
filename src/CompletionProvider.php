@@ -216,7 +216,7 @@ class CompletionProvider
                 /** @var Node\Statement\InlineHtml $previousSiblingNode */
                 $cursorContent = $previousSiblingNode->getFullText().$cursorContent; // we prepend HTML content, to allow attribute checks to "work" in mixed lang block content situations (like inline php tags)
             }
-            $success = preg_match('/<([a-zA-Z0-9]+[\\\\a-zA-Z0-9]*)(?:\s+([^\s=<>]+(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+)\s+)?|\s+)*)?$/', $cursorContent, $matches);
+            $success = preg_match('/<([a-zA-Z0-9]+[\\\\a-zA-Z0-9]*)(?>(?:\s+([^\s=<>]+(?:=\s*(?:"[^"]*"|\'[^\']\'|[^\s"]+)\s+)?|\s+)*)?)$/', $cursorContent, $matches);
 
             if ($success) {
                 $prefix = $matches[1];
